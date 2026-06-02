@@ -1,0 +1,19 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Generated assets (can be regenerated)
+little_bell/assets/
+
+# User config (contains device keys)
+config.yaml
+
+# macOS
+.DS_Store

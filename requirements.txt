@@ -1,0 +1,6 @@
+rumps>=0.4.0
+PySide6>=6.5
+Flask>=3.0
+requests>=2.31
+PyYAML>=6.0
+Pillow>=10.0
