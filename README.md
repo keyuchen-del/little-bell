@@ -306,14 +306,6 @@ server:
 - 🖥 跨平台支持（Linux / Windows）
 - 🎨 新宠物形象 / 动画
 
----
-
-## ⭐ Star History
-
-如果小铃铛帮你省了等待时间，点个 Star 支持一下。
-
-[![Star History Chart](https://api.star-history.com/svg?repos=keyuchen-del/little-bell&type=Date)](https://star-history.com/#keyuchen-del/little-bell&Date)
-
 ## 📄 License
 
 [MIT](./LICENSE) © [keyuchen-del](https://github.com/keyuchen-del)
