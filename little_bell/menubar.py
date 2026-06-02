@@ -25,8 +25,9 @@ class LittleBellMenubar(rumps.App):
         self.status_item = rumps.MenuItem("状态: 监听中...")
         self.events_menu = rumps.MenuItem("最近事件")
         self.events_menu.add(rumps.MenuItem("(暂无事件)"))
+        channels = notifier.active_channels if hasattr(notifier, 'active_channels') else []
         self.bark_status = rumps.MenuItem(
-            f"Bark: {'已配置' if notifier.is_configured else '未配置'}"
+            f"通道: {', '.join(channels) if channels else '仅 macOS 通知'}"
         )
         self.toggle_item = rumps.MenuItem("暂停推送", callback=self.toggle_push)
 

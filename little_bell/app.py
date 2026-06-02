@@ -1,5 +1,5 @@
 """小铃铛 - 主入口
-架构：rumps 菜单栏 (主线程 AppKit) + Flask server (后台线程) + Bark 推送
+架构：rumps 菜单栏 (主线程 AppKit) + Flask server (后台线程) + 多通道推送
 宠物浮窗使用 PyObjC 原生窗口，与 rumps 共享同一 AppKit RunLoop。
 """
 import sys
@@ -18,15 +18,15 @@ logger = logging.getLogger("little-bell")
 def main():
     from pathlib import Path
     from little_bell.config import load_config
-    from little_bell.notifier import BarkNotifier
+    from little_bell.notifier import NotifierManager
     from little_bell.server import init_server, run_server
     from little_bell.menubar import LittleBellMenubar
 
     config = load_config()
-    notifier = BarkNotifier(config)
+    notifier = NotifierManager(config)
 
-    if not notifier.is_configured:
-        logger.warning("Bark 未配置 device_key，推送功能不可用。请编辑 config.yaml")
+    channels = notifier.active_channels
+    logger.info(f"推送通道: {', '.join(channels) if channels else '(无)'}")
 
     # Generate assets if missing
     assets_dir = Path(__file__).parent / "assets"
