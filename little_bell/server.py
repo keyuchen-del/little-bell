@@ -69,6 +69,24 @@ def health():
     return jsonify({"status": "ok"})
 
 
+def check_port(host, port):
+    """Check if port is available. Returns True if free."""
+    import socket
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        try:
+            s.bind((host, port))
+            return True
+        except OSError:
+            return False
+
+
 def run_server(host="127.0.0.1", port=6789):
     logging.getLogger("werkzeug").setLevel(logging.WARNING)
+    if not check_port(host, port):
+        logger.error(
+            f"端口 {port} 已被占用! 可能原因:\n"
+            f"  1. 小铃铛已在运行 (用 lsof -ti:{port} | xargs kill 关闭)\n"
+            f"  2. 其他程序占用了该端口 (用 --port 指定其他端口)"
+        )
+        return
     app.run(host=host, port=port, threaded=True)

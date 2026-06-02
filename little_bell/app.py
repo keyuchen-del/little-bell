@@ -42,7 +42,25 @@ def main():
     parser.add_argument("--no-pet", action="store_true", help="不显示桌面宠物")
     parser.add_argument("--port", type=int, help="指定 HTTP 服务端口 (默认 6789)")
     parser.add_argument("--config", type=str, help="指定配置文件路径")
+    parser.add_argument("--daemon", "-d", action="store_true", help="后台运行 (脱离终端)")
     args = parser.parse_args()
+
+    # Daemon mode: fork into background
+    if args.daemon:
+        import os
+        pid = os.fork()
+        if pid > 0:
+            print(f"小铃铛已在后台启动 (PID: {pid})")
+            print(f"  停止: kill {pid}")
+            print(f"  测试: curl http://127.0.0.1:{args.port or 6789}/health")
+            sys.exit(0)
+        os.setsid()
+        # Redirect stdio
+        sys.stdin = open(os.devnull, "r")
+        log_path = os.path.expanduser("~/Library/Logs/little-bell.log")
+        log_file = open(log_path, "a")
+        sys.stdout = log_file
+        sys.stderr = log_file
 
     from pathlib import Path
     from little_bell.config import load_config
@@ -65,6 +83,14 @@ def main():
     notifier = NotifierManager(config)
     channels = notifier.active_channels
     logger.info(f"推送通道: {', '.join(channels) if channels else '(仅 macOS 通知)'}")
+
+    # First-run guidance
+    from little_bell.config import EXAMPLE_CONFIG_PATH, DEFAULT_CONFIG_PATH
+    bark_key = config.get("bark", {}).get("device_key", "")
+    if not bark_key and not args.daemon:
+        logger.info("💡 提示: Bark 未配置，当前仅有 macOS 本地通知")
+        logger.info("   配置手机推送: 编辑 config.yaml 填入 bark.device_key")
+        logger.info("   验证推送: uv run python -m little_bell --test")
 
     # Generate assets if missing
     assets_dir = Path(__file__).parent / "assets"
