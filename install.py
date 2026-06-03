@@ -20,6 +20,7 @@ CLAUDE_SETTINGS = Path.home() / ".claude" / "settings.json"
 CONFIG_PATH = Path(__file__).parent / "config.yaml"
 EXAMPLE_CONFIG = Path(__file__).parent / "config.example.yaml"
 HOOK_EVENTS = ["Stop", "Notification"]
+PERMISSION_HOOK_PORT = 6789
 HOOK_MARKER = "little-bell"
 
 
@@ -66,6 +67,24 @@ def inject_claude_hooks(hook_path):
         modified = True
         print(f"  [OK] 注入 {event} hook")
 
+    # PermissionRequest HTTP hook (synchronous — blocks until user decides)
+    perm_hooks = hooks.setdefault("PermissionRequest", [])
+    perm_already = any(
+        HOOK_MARKER in str(h.get("hooks", [{}])[0].get("url", ""))
+        for h in perm_hooks if isinstance(h, dict)
+    )
+    if not perm_already:
+        perm_hooks.append({
+            "matcher": "",
+            "hooks": [{
+                "type": "http",
+                "url": f"http://127.0.0.1:{PERMISSION_HOOK_PORT}/permission",
+                "timeout": 300,
+            }]
+        })
+        modified = True
+        print(f"  [OK] 注入 PermissionRequest HTTP hook (手机远程批准)")
+
     if modified:
         with open(CLAUDE_SETTINGS, "w", encoding="utf-8") as f:
             json.dump(settings, f, indent=2, ensure_ascii=False)
@@ -96,6 +115,17 @@ def remove_claude_hooks():
         if len(hooks[event]) < original_len:
             modified = True
             print(f"  [OK] 移除 {event} hook")
+
+    # Remove PermissionRequest HTTP hook
+    perm_hooks = hooks.get("PermissionRequest", [])
+    original_len = len(perm_hooks)
+    hooks["PermissionRequest"] = [
+        h for h in perm_hooks
+        if not (isinstance(h, dict) and f":{PERMISSION_HOOK_PORT}/permission" in str(h.get("hooks", [{}])[0].get("url", "")))
+    ]
+    if len(hooks["PermissionRequest"]) < original_len:
+        modified = True
+        print(f"  [OK] 移除 PermissionRequest hook")
 
     if modified:
         with open(CLAUDE_SETTINGS, "w", encoding="utf-8") as f:

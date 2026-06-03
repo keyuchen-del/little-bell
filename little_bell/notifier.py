@@ -80,9 +80,11 @@ class BarkNotifier(BaseNotifier):
     def enabled(self):
         return bool(self._device_key)
 
-    def send(self, title: str, body: str) -> bool:
+    def send(self, title: str, body: str, action_url: str = None) -> bool:
         url = f"{self._server}/{self._device_key}/{quote(title)}/{quote(body)}"
         params = {"sound": "bell", "group": "little-bell"}
+        if action_url:
+            params["url"] = action_url
         try:
             resp = requests.get(url, params=params, timeout=5)
             return resp.status_code == 200
@@ -187,3 +189,21 @@ class NotifierManager:
             daemon=True,
         )
         t.start()
+
+    def send_permission(self, tool_name: str, summary: str, action_url: str, session_id: str = None):
+        """推送权限请求通知，附带手机操作 URL。"""
+        title = f"⚠️ 批准操作: {tool_name}"
+        body = summary[:100]
+
+        for n in self._notifiers:
+            if not n.enabled:
+                continue
+            try:
+                if isinstance(n, BarkNotifier):
+                    n.send(title, body, action_url=action_url)
+                elif isinstance(n, MacOSNotifier):
+                    n.send(title, f"{body}\n点击通知打开操作页: {action_url}")
+                else:
+                    n.send(title, f"{body}\n操作: {action_url}")
+            except Exception as e:
+                logger.warning(f"[{n.name}] permission push failed: {e}")
