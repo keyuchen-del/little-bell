@@ -26,6 +26,20 @@ webhook:
   # 钉钉示例: '{"msgtype":"text","text":{"content":"{{title}}: {{body}}"}}'
   body_template: ""
 
+# --- 规则引擎 (自动批准/拒绝，减少手动干预) ---
+# 匹配格式: "Tool" 匹配所有该工具操作, "Tool:pattern*" 匹配具体内容
+rules:
+  auto_allow:
+    - "Read"                     # 所有读文件操作自动批准
+    - "Bash:ls *"                # ls 命令自动批准
+    - "Bash:git status"          # git status 自动批准
+    - "Bash:git diff*"           # git diff 相关自动批准
+    - "Bash:cat *"               # cat 命令自动批准
+  auto_deny:
+    - "Bash:rm -rf /*"           # 根目录删除永远拒绝
+    - "Bash:sudo *"              # sudo 永远拒绝
+    # - "Bash:git push --force*" # 取消注释启用
+
 # --- 推送行为 ---
 notification:
   debounce_seconds: 3      # 同一 session 内 N 秒内不重复推送
@@ -41,7 +55,7 @@ pet:
 
 # --- 本地服务 ---
 server:
-  host: "127.0.0.1"
+  host: "0.0.0.0"   # 绑定 0.0.0.0 让手机局域网可访问
   port: 6789
 
 # --- 监听的 Agent ---

@@ -65,6 +65,7 @@ def main():
     from pathlib import Path
     from little_bell.config import load_config
     from little_bell.notifier import NotifierManager
+    from little_bell.rules import RuleEngine
     from little_bell.server import init_server, run_server
     from little_bell.menubar import LittleBellMenubar
 
@@ -81,8 +82,15 @@ def main():
         return
 
     notifier = NotifierManager(config)
+    rules = RuleEngine(config)
     channels = notifier.active_channels
     logger.info(f"推送通道: {', '.join(channels) if channels else '(仅 macOS 通知)'}")
+
+    rules_conf = config.get("rules", {})
+    if rules_conf.get("auto_allow") or rules_conf.get("auto_deny"):
+        allow_count = len(rules_conf.get("auto_allow", []))
+        deny_count = len(rules_conf.get("auto_deny", []))
+        logger.info(f"规则引擎: {allow_count} 条自动批准, {deny_count} 条自动拒绝")
 
     # First-run guidance
     from little_bell.config import EXAMPLE_CONFIG_PATH, DEFAULT_CONFIG_PATH
@@ -106,7 +114,7 @@ def main():
     def on_event(event_record):
         menubar_app.on_event(event_record)
 
-    init_server(notifier, on_event_callback=on_event)
+    init_server(notifier, on_event_callback=on_event, rules=rules)
 
     # Start Flask in background thread
     server_host = config["server"]["host"]
@@ -133,7 +141,7 @@ def main():
                 msg = event_record.get("detail") or f"{event_record['agent']}: {event_record['event']}"
                 AppHelper.callAfter(pet.trigger_alert, msg)
 
-            init_server(notifier, on_event_callback=on_event_with_pet)
+            init_server(notifier, on_event_callback=on_event_with_pet, rules=rules)
         except Exception as e:
             logger.warning(f"浮窗宠物启动失败 (非关键): {e}")
 

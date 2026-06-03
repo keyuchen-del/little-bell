@@ -12,8 +12,10 @@ logger = logging.getLogger("little-bell")
 app = Flask(__name__)
 
 event_history = deque(maxlen=50)
+decision_history = deque(maxlen=200)
 notifier = None
 ui_callback = None
+rule_engine = None
 
 # Pending permission actions: {action_id: {event, tool, params, decision, decided_event}}
 pending_actions = {}
@@ -31,10 +33,11 @@ def get_lan_ip():
         return "127.0.0.1"
 
 
-def init_server(bark_notifier, on_event_callback=None):
-    global notifier, ui_callback
+def init_server(bark_notifier, on_event_callback=None, rules=None):
+    global notifier, ui_callback, rule_engine
     notifier = bark_notifier
     ui_callback = on_event_callback
+    rule_engine = rules
 
 
 @app.route("/event", methods=["POST"])
@@ -95,6 +98,17 @@ def handle_permission():
     else:
         summary = str(tool_input)[:200]
 
+    # Rule engine: auto-decide if matching
+    if rule_engine:
+        auto_decision = rule_engine.evaluate(tool_name, tool_input)
+        if auto_decision:
+            decision_history.appendleft({
+                "tool": tool_name, "summary": summary[:100],
+                "decision": auto_decision, "source": "rule",
+                "timestamp": datetime.now().isoformat(),
+            })
+            return jsonify({"decision": auto_decision})
+
     action_id = uuid.uuid4().hex[:12]
     decided_event = threading.Event()
 
@@ -140,11 +154,19 @@ def handle_permission():
     decided_event.wait(timeout=300)
 
     decision = action.get("decision", "deny")
+    reply_msg = action.get("reply_message")
 
     with pending_lock:
         pending_actions.pop(action_id, None)
 
-    logger.info(f"[Permission] {tool_name} → {decision}")
+    decision_history.appendleft({
+        "tool": tool_name, "summary": summary[:100],
+        "decision": decision, "source": "user",
+        "reply": reply_msg,
+        "timestamp": datetime.now().isoformat(),
+    })
+
+    logger.info(f"[Permission] {tool_name} → {decision}" + (f" (reply: {reply_msg})" if reply_msg else ""))
 
     if decision == "allow":
         return jsonify({"decision": "allow"})
@@ -154,20 +176,68 @@ def handle_permission():
 
 @app.route("/action/<action_id>", methods=["GET"])
 def action_page(action_id):
-    """手机端操作页面 — 显示批准/拒绝按钮。"""
+    """手机端操作页面 — 显示批准/拒绝按钮 + 富上下文 + 快捷回复。"""
     with pending_lock:
         action = pending_actions.get(action_id)
 
     if not action:
         return Response(ACTION_PAGE_EXPIRED, content_type="text/html; charset=utf-8")
 
+    # Build rich context based on tool type
+    tool = action["tool"]
+    full_input = action.get("full_input", {})
+    context_html = _build_context_html(tool, full_input)
+
     html = ACTION_PAGE_TEMPLATE.format(
         action_id=action_id,
-        tool=action["tool"],
-        summary=action["summary"][:300],
+        tool=tool,
+        context=context_html,
+        summary=action["summary"][:500],
         timestamp=action["timestamp"],
     )
     return Response(html, content_type="text/html; charset=utf-8")
+
+
+def _build_context_html(tool, tool_input):
+    """根据工具类型生成富上下文 HTML。"""
+    if not isinstance(tool_input, dict):
+        return f"<pre>{str(tool_input)[:500]}</pre>"
+
+    if tool == "Bash":
+        cmd = tool_input.get("command", "")
+        desc = tool_input.get("description", "")
+        html = f'<div class="ctx-label">命令</div><pre class="ctx-code">{cmd}</pre>'
+        if desc:
+            html += f'<div class="ctx-desc">{desc}</div>'
+        return html
+
+    elif tool == "Edit":
+        fp = tool_input.get("file_path", "")
+        old = tool_input.get("old_string", "")[:200]
+        new = tool_input.get("new_string", "")[:200]
+        html = f'<div class="ctx-label">文件</div><pre class="ctx-code">{fp}</pre>'
+        if old:
+            html += f'<div class="ctx-label">替换</div><pre class="ctx-diff ctx-del">{old}</pre>'
+        if new:
+            html += f'<pre class="ctx-diff ctx-add">{new}</pre>'
+        return html
+
+    elif tool == "Write":
+        fp = tool_input.get("file_path", "")
+        content = tool_input.get("content", "")[:300]
+        html = f'<div class="ctx-label">写入文件</div><pre class="ctx-code">{fp}</pre>'
+        if content:
+            html += f'<div class="ctx-label">内容预览</div><pre class="ctx-code">{content}...</pre>'
+        return html
+
+    elif tool == "Read":
+        fp = tool_input.get("file_path", "")
+        return f'<div class="ctx-label">读取文件</div><pre class="ctx-code">{fp}</pre>'
+
+    else:
+        import json as _json
+        formatted = _json.dumps(tool_input, ensure_ascii=False, indent=2)[:500]
+        return f'<div class="ctx-label">参数</div><pre class="ctx-code">{formatted}</pre>'
 
 
 @app.route("/action/<action_id>/approve", methods=["POST", "GET"])
@@ -178,6 +248,21 @@ def action_approve(action_id):
 @app.route("/action/<action_id>/deny", methods=["POST", "GET"])
 def action_deny(action_id):
     return _resolve_action(action_id, "deny")
+
+
+@app.route("/action/<action_id>/reply", methods=["POST"])
+def action_reply(action_id):
+    """快捷回复 — 用户输入文字发回 agent。"""
+    message = request.form.get("message", "") or (request.get_json(force=True) or {}).get("message", "")
+    with pending_lock:
+        action = pending_actions.get(action_id)
+    if not action:
+        return Response(ACTION_PAGE_DONE.format(result="已过期"), content_type="text/html; charset=utf-8")
+
+    action["decision"] = "allow"
+    action["reply_message"] = message
+    action["decided_event"].set()
+    return Response(ACTION_PAGE_DONE.format(result=f"✅ 已回复: {message[:30]}"), content_type="text/html; charset=utf-8")
 
 
 def _resolve_action(action_id, decision):
@@ -204,6 +289,12 @@ def list_actions():
             if a["decision"] is None
         ]
     return jsonify({"pending": items})
+
+
+@app.route("/history", methods=["GET"])
+def history():
+    """决策审计历史。"""
+    return jsonify({"decisions": list(decision_history)})
 
 
 # ============================================================
@@ -260,39 +351,69 @@ ACTION_PAGE_TEMPLATE = """<!DOCTYPE html>
 <title>小铃铛 - 权限请求</title>
 <style>
 * {{ margin: 0; padding: 0; box-sizing: border-box; }}
-body {{ font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #1a1a2e; color: #eee; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }}
-.card {{ background: #16213e; border-radius: 20px; padding: 32px 24px; max-width: 400px; width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,0.5); }}
-.icon {{ text-align: center; font-size: 48px; margin-bottom: 16px; }}
-h1 {{ font-size: 20px; text-align: center; margin-bottom: 8px; color: #fff; }}
-.tool {{ background: #0f3460; border-radius: 10px; padding: 12px 16px; margin: 16px 0; font-family: monospace; font-size: 14px; word-break: break-all; color: #a8d8ea; }}
-.summary {{ color: #aaa; font-size: 13px; margin-bottom: 24px; word-break: break-all; max-height: 120px; overflow-y: auto; }}
-.buttons {{ display: flex; gap: 12px; }}
-.btn {{ flex: 1; padding: 16px; border: none; border-radius: 12px; font-size: 18px; font-weight: 600; cursor: pointer; transition: transform 0.1s; }}
-.btn:active {{ transform: scale(0.95); }}
-.btn-approve {{ background: #00c853; color: #fff; }}
-.btn-deny {{ background: #ff1744; color: #fff; }}
-.time {{ text-align: center; color: #666; font-size: 11px; margin-top: 16px; }}
+body {{ font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #0f0f1a; color: #eee; min-height: 100vh; padding: 16px; }}
+.card {{ background: #1a1f36; border-radius: 16px; padding: 24px 20px; max-width: 420px; margin: 0 auto; box-shadow: 0 8px 32px rgba(0,0,0,0.4); }}
+.header {{ display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }}
+.header .badge {{ background: #ff6b35; color: #fff; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; }}
+.header h1 {{ font-size: 18px; color: #fff; }}
+.context {{ background: #0d1117; border: 1px solid #30363d; border-radius: 10px; padding: 14px; margin: 12px 0; max-height: 240px; overflow-y: auto; }}
+.ctx-label {{ color: #8b949e; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; margin-top: 8px; }}
+.ctx-label:first-child {{ margin-top: 0; }}
+.ctx-code {{ font-family: 'SF Mono', Menlo, monospace; font-size: 13px; color: #c9d1d9; word-break: break-all; white-space: pre-wrap; }}
+.ctx-diff {{ font-family: 'SF Mono', Menlo, monospace; font-size: 12px; padding: 6px 8px; border-radius: 4px; margin: 4px 0; white-space: pre-wrap; word-break: break-all; }}
+.ctx-del {{ background: #3d1f1f; color: #f85149; }}
+.ctx-add {{ background: #1f3d1f; color: #56d364; }}
+.ctx-desc {{ color: #8b949e; font-size: 12px; font-style: italic; margin-top: 4px; }}
+.buttons {{ display: flex; gap: 10px; margin-top: 16px; }}
+.btn {{ flex: 1; padding: 14px; border: none; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.15s; }}
+.btn:active {{ transform: scale(0.96); opacity: 0.9; }}
+.btn-approve {{ background: #238636; color: #fff; }}
+.btn-deny {{ background: #da3633; color: #fff; }}
+.reply-section {{ margin-top: 12px; }}
+.reply-toggle {{ color: #58a6ff; font-size: 13px; cursor: pointer; text-decoration: underline; }}
+.reply-box {{ display: none; margin-top: 8px; }}
+.reply-box.show {{ display: block; }}
+.reply-input {{ width: 100%; padding: 10px 12px; border: 1px solid #30363d; border-radius: 8px; background: #0d1117; color: #c9d1d9; font-size: 14px; resize: none; }}
+.reply-send {{ margin-top: 8px; width: 100%; padding: 10px; border: none; border-radius: 8px; background: #1f6feb; color: #fff; font-size: 14px; font-weight: 500; cursor: pointer; }}
+.time {{ text-align: center; color: #484f58; font-size: 11px; margin-top: 12px; }}
 </style>
 </head>
 <body>
-<div class="card">
-  <div class="icon">🔔</div>
-  <h1>Agent 请求权限</h1>
-  <div class="tool">{tool}</div>
-  <div class="summary">{summary}</div>
+<div class="card" id="main-card">
+  <div class="header">
+    <span class="badge">{tool}</span>
+    <h1>请求权限</h1>
+  </div>
+  <div class="context">{context}</div>
   <div class="buttons">
     <button class="btn btn-approve" onclick="decide('approve')">批准</button>
     <button class="btn btn-deny" onclick="decide('deny')">拒绝</button>
+  </div>
+  <div class="reply-section">
+    <span class="reply-toggle" onclick="toggleReply()">💬 快捷回复...</span>
+    <div class="reply-box" id="reply-box">
+      <textarea class="reply-input" id="reply-msg" rows="2" placeholder="输入消息发回 Agent..."></textarea>
+      <button class="reply-send" onclick="sendReply()">发送回复</button>
+    </div>
   </div>
   <div class="time">{timestamp}</div>
 </div>
 <script>
 function decide(action) {{
-  fetch('/action/{action_id}/' + action, {{method: 'POST'}})
-    .then(() => {{
-      document.querySelector('.card').innerHTML = '<div class="icon">' + (action==='approve' ? '✅' : '❌') + '</div><h1>' + (action==='approve' ? '已批准' : '已拒绝') + '</h1><p style="text-align:center;color:#aaa;margin-top:12px">可以关闭此页面</p>';
-    }})
-    .catch(() => {{ alert('发送失败，请重试'); }});
+  fetch('/action/{action_id}/' + action, {{method:'POST'}}).then(() => {{
+    document.getElementById('main-card').innerHTML = '<div style="text-align:center;padding:40px"><p style="font-size:48px">' + (action==='approve'?'✅':'❌') + '</p><h2>' + (action==='approve'?'已批准':'已拒绝') + '</h2><p style="color:#8b949e;margin-top:8px">可关闭此页面</p></div>';
+  }}).catch(() => alert('网络错误'));
+}}
+function toggleReply() {{
+  document.getElementById('reply-box').classList.toggle('show');
+  document.getElementById('reply-msg').focus();
+}}
+function sendReply() {{
+  const msg = document.getElementById('reply-msg').value;
+  if (!msg) return;
+  fetch('/action/{action_id}/reply', {{method:'POST', headers:{{'Content-Type':'application/json'}}, body:JSON.stringify({{message:msg}})}}).then(() => {{
+    document.getElementById('main-card').innerHTML = '<div style="text-align:center;padding:40px"><p style="font-size:48px">💬</p><h2>已回复</h2><p style="color:#8b949e;margin-top:8px">' + msg.slice(0,30) + '</p></div>';
+  }});
 }}
 </script>
 </body>
