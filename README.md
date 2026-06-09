@@ -1,221 +1,88 @@
-<div align="center">
+<p align="center">
+  <img src="little_bell/assets/bell.png" width="80" alt="Little Bell">
+</p>
 
-# 🔔 小铃铛 Little Bell
+<h1 align="center">小铃铛 Little Bell</h1>
 
-**AI Agent 停下来等你的时候，你的手机会响 —— 还能直接批准或拒绝。**
+<p align="center">
+  <strong>AI Agent 停下来时，你的手机会响 —— 还能远程批准或拒绝。</strong><br/>
+  <sub>The only Agent notification tool that lets you approve permissions from your phone.</sub>
+</p>
 
-*Notify + Remote Approve/Deny when your AI coding agent needs you.*
-
-[![Python](https://img.shields.io/badge/Python-3.12+-3776AB?logo=python&logoColor=white)](https://python.org)
-[![macOS](https://img.shields.io/badge/macOS-Sonoma+-000000?logo=apple&logoColor=white)](https://apple.com/macos)
-[![License](https://img.shields.io/github/license/Jackychen-12/little-bell)](LICENSE)
-[![Last Commit](https://img.shields.io/github/last-commit/Jackychen-12/little-bell?logo=git&logoColor=white)](https://github.com/Jackychen-12/little-bell/commits)
-
-</div>
-
----
-
-## 🎯 这是什么
-
-你一定经历过这个场景：
-
-> 让 Claude Code 跑一个重构任务，去倒了杯咖啡。
-> 回来一看 —— **它 10 分钟前就停了**，一直在等你点 "Allow"。
-
-**10 分钟 × 一天 5 次 = 每天近 1 小时在等一个你不知道的等待。**
-
-Claude Code、Cursor、Codex……所有 AI Agent 都有同一个问题：**需要人工介入时，没有任何方式主动通知你。**
-
-小铃铛解决这个问题 —— **Agent 一停，你手机就响；需要权限时，手机上直接批准或拒绝，不用跑回电脑。**
+<p align="center">
+  <a href="https://github.com/Jackychen-12/little-bell/stargazers"><img src="https://img.shields.io/github/stars/Jackychen-12/little-bell?style=flat&logo=github&color=yellow" alt="Stars"></a>
+  <img src="https://img.shields.io/badge/Python-3.12+-3776AB?logo=python&logoColor=white" alt="Python">
+  <img src="https://img.shields.io/badge/macOS-Sonoma+-000000?logo=apple&logoColor=white" alt="macOS">
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/Jackychen-12/little-bell" alt="License"></a>
+  <a href="https://github.com/Jackychen-12/little-bell/commits"><img src="https://img.shields.io/github/last-commit/Jackychen-12/little-bell?logo=git&logoColor=white" alt="Last Commit"></a>
+</p>
 
 ---
 
-## ✨ 功能一览
+> 让 Claude Code 跑一个重构任务，去倒了杯咖啡。回来一看 —— **它 10 分钟前就停了**，一直在等你点 "Allow"。
+>
+> **10 分钟 x 一天 5 次 = 每天近 1 小时在等一个你不知道的等待。**
 
-| 功能 | 说明 |
-|------|------|
-| **📲 手机远程批准/拒绝** | **Agent 请求权限时，Bark 推送操作链接，手机上一键批准或拒绝，不用回到电脑** |
-| 🛡️ 规则引擎 | 配置 auto_allow / auto_deny 规则，Read / git status 等安全操作自动放行，rm -rf 永远拒绝 |
-| 📱 多通道推送 | macOS 通知 (零配置) + Bark (iOS) + Webhook (飞书/钉钉/Slack/Discord) |
-| 🎣 Claude Code Hook | 原生 Hook 事件接入，Stop / Notification / PermissionRequest 自动触发 |
-| 🔔 菜单栏常驻 | 状态栏铃铛图标，有事件时变红 + 计数 |
-| 🐾 桌面宠物 | 星星人风格浮窗宠物，收到通知跳起来 + 气泡消息 |
-| ⏱ 智能防抖 | 同一会话 3 秒内不重复推送，不会轰炸你 |
-| 🔌 通用 HTTP 接口 | 任何能发 curl 的工具都能接入 |
+小铃铛解决这个问题 —— Agent 一停，你手机就响；需要权限时，**手机上直接批准或拒绝，不用跑回电脑**。
 
 ---
 
-## 🚀 快速开始
+## 为什么选小铃铛
 
-### 前置条件
+桌面宠物类工具（如 [Clawd on Desk](https://github.com/rullerzhou-afk/clawd-on-desk)）在**人坐在电脑前时**很好用。但真正痛的场景是 —— **你不在电脑前**。
 
-- macOS (Sonoma+)
-- [uv](https://docs.astral.sh/uv/) (`brew install uv`)
+| 能力 | 桌面宠物类工具 | 小铃铛 |
+|------|:---:|:---:|
+| 桌面通知 | ✅ | ✅ |
+| 桌面宠物动画 | ✅ 丰富 | ✅ 基础 |
+| 桌面权限气泡 | ✅ | - |
+| **手机推送通知** | - | **✅ Bark / Webhook** |
+| **手机远程批准/拒绝** | - | **✅ 操作页面** |
+| **规则引擎自动放行** | - | **✅ auto_allow / auto_deny** |
+| **快捷回复发回 Agent** | - | **✅ 手机端文字回复** |
+| **飞书/钉钉/Slack 推送** | - | **✅ Webhook** |
+| **决策审计历史** | - | **✅ /history API** |
+| 零依赖安装 | 需要 Electron | **uv sync 即用** |
 
-### 安装 & 启动
-
-```bash
-git clone https://github.com/Jackychen-12/little-bell.git
-cd little-bell
-uv sync
-uv run python -m little_bell
-```
-
-启动后你会看到：
-- ✅ 菜单栏出现铃铛图标
-- ✅ 桌面出现星星人小宠物
-- ✅ 终端打印 `小铃铛启动完成! 等待 Agent 事件...`
-
-### 验证通知
-
-在另一个终端窗口执行：
-
-```bash
-curl -X POST http://127.0.0.1:6789/event \
-  -H "Content-Type: application/json" \
-  -d '{"agent":"claude-code","event":"stop","data":{"message":"重构完成，等你 review"}}'
-```
-
-你会看到 **macOS 系统通知弹出** + 宠物跳动 + 菜单栏变红。整个过程无需任何配置。
+**一句话总结：桌面宠物是给"在座位上"的你准备的，小铃铛是给"去倒咖啡"的你准备的。**
 
 ---
 
-## 📱 配置推送通道
+## 核心功能
 
-小铃铛支持三种推送方式，可叠加使用：
+### 📲 手机远程批准/拒绝
 
-### 方式一：macOS 系统通知（默认开启，无需配置）
+这是小铃铛独有的核心能力。当 Claude Code 请求权限（执行命令、编辑文件），你不需要跑回电脑：
 
-开箱即用。启动小铃铛后，所有 Agent 事件自动弹出 macOS 通知。
+```
+Claude Code: "Bash: npm install"  需要你批准
+     ↓
+小铃铛 /permission 端点接收，阻塞等待
+     ↓
+Bark 推送到你的 iPhone，附带操作链接
+     ↓
+你点击通知 → 打开手机端操作页面
+看到: [Bash] npm install
+      [批准]  [拒绝]  [💬 快捷回复...]
+     ↓
+点击批准 → Claude Code 继续执行
+```
 
-如需关闭：
+手机端操作页面提供：
+
+- **富上下文** — Bash 显示完整命令，Edit 显示文件路径 + diff 预览，Write 显示内容预览
+- **批准/拒绝** — 一键操作
+- **快捷回复** — 输入文字发回给 Agent（如 "换个方案"）
+- **5 分钟超时** — 超时自动拒绝，不会永远阻塞
+
+### 🛡️ 规则引擎
+
+不想每次 `git status` 都掏手机？配置规则自动处理：
 
 ```yaml
-# config.yaml
-macos_notification:
-  enabled: false
-```
-
-### 方式二：Bark（推送到 iPhone）
-
-适合离开电脑时接收通知。
-
-**Step 1** — 在 App Store 搜索 [Bark](https://apps.apple.com/app/bark/id1403753865) 并下载
-
-**Step 2** — 打开 Bark App，首页显示如下格式的 URL：
-
-```
-https://api.day.app/xxxxxxx/这里是推送内容
-                    ↑↑↑↑↑↑↑
-                 这就是你的 Device Key
-```
-
-**Step 3** — 创建配置文件并填入 Key：
-
-```bash
-cp config.example.yaml config.yaml
-```
-
-编辑 `config.yaml`：
-
-```yaml
-bark:
-  server: "https://api.day.app"       # 官方服务器，自建则改为你的地址
-  device_key: "你的DeviceKey"          # 从 Bark App 首页复制
-```
-
-**Step 4** — 重启小铃铛，终端会显示 `推送通道: macOS, Bark`
-
-### 方式三：Webhook（飞书 / 钉钉 / Slack / Discord / 企业微信）
-
-适合团队使用或不用 iOS 的场景。
-
-**飞书机器人：**
-
-```yaml
-webhook:
-  url: "https://open.feishu.cn/open-apis/bot/v2/hook/你的token"
-  body_template: '{"msg_type":"text","content":{"text":"{{title}}: {{body}}"}}'
-```
-
-**钉钉机器人：**
-
-```yaml
-webhook:
-  url: "https://oapi.dingtalk.com/robot/send?access_token=你的token"
-  body_template: '{"msgtype":"text","text":{"content":"{{title}}: {{body}}"}}'
-```
-
-**Slack Incoming Webhook：**
-
-```yaml
-webhook:
-  url: "https://hooks.slack.com/services/T.../B.../xxx"
-  body_template: '{"text":"*{{title}}*\n{{body}}"}'
-```
-
-**Discord Webhook：**
-
-```yaml
-webhook:
-  url: "https://discord.com/api/webhooks/你的ID/你的token"
-  body_template: '{"content":"**{{title}}**\n{{body}}"}'
-```
-
-> `{{title}}` 和 `{{body}}` 会被自动替换为事件标题和内容。
-
----
-
-## 🔗 接入 Claude Code
-
-一键注入 Hook，之后 Claude Code 每次停下等你都会自动推送：
-
-```bash
-uv run python install.py
-```
-
-脚本会：
-1. 备份你的 `~/.claude/settings.json`
-2. 注入 `Stop` 和 `Notification` 事件 hook
-3. 引导你配置 Bark（可跳过）
-
-**验证**：启动小铃铛，在 Claude Code 中执行任意任务，当它完成一轮对话或请求权限时，你会收到通知。
-
----
-
-## 📲 手机远程批准/拒绝
-
-这是小铃铛的核心功能 —— 当 Claude Code 请求权限（如执行命令、编辑文件），你不需要跑回电脑，**直接在手机上操作**。
-
-### 工作流程
-
-```
-Claude Code 请求权限（如 Bash: npm install）
-  → 小铃铛 /permission 端点接收请求，阻塞等待
-  → Bark 推送通知到你的 iPhone，附带操作链接
-  → 你点击通知 → 打开手机端操作页面
-  → 看到命令详情 + 「批准」「拒绝」按钮
-  → 点击批准 → Claude Code 继续执行
-```
-
-### 操作页面功能
-
-手机端的操作页面会显示：
-
-- **工具类型**（Bash / Edit / Write / Read）
-- **富上下文** — Bash 显示完整命令，Edit 显示文件路径和 diff 预览
-- **批准/拒绝按钮** — 一键操作
-- **快捷回复** — 可以输入文字发回给 Agent
-
-### 规则引擎：减少手动干预
-
-不想每次 `git status` 都掏手机？配置规则自动放行：
-
-```yaml
-# config.yaml
 rules:
   auto_allow:
-    - "Read"              # 所有读文件操作自动批准
+    - "Read"              # 所有读文件自动批准
     - "Bash:ls *"         # ls 命令自动批准
     - "Bash:git status"   # git status 自动批准
     - "Bash:git diff*"    # git diff 相关自动批准
@@ -224,13 +91,113 @@ rules:
     - "Bash:sudo *"       # sudo 永远拒绝
 ```
 
-匹配规则的操作会被自动处理，不匹配的才推送到手机。
+匹配规则的操作被自动处理，不匹配的才推送到手机。每条决策都写入审计日志（`/history` API）。
+
+### 📱 多通道推送
+
+三种方式可叠加使用：
+
+| 通道 | 场景 | 配置难度 |
+|------|------|:---:|
+| **macOS 通知** | 坐在电脑前 | 零配置 |
+| **Bark (iOS)** | 离开电脑 + 远程批准 | 30 秒 |
+| **Webhook** | 团队通知 / 飞书 / 钉钉 / Slack / Discord | 1 分钟 |
+
+### 🐾 桌面宠物 + 菜单栏
+
+- 星星人风格浮窗宠物，收到通知跳起来 + 气泡消息
+- 菜单栏铃铛图标常驻，有事件时变红 + 计数
+- 智能防抖，同一会话 3 秒内不重复推送
 
 ---
 
-## 🔌 接入其他 Agent / 自定义工具
+## 快速开始
 
-小铃铛通过 HTTP 接口接收事件。任何能发 HTTP 请求的脚本/工具都能接入：
+```bash
+git clone https://github.com/Jackychen-12/little-bell.git
+cd little-bell
+uv sync
+uv run python -m little_bell
+```
+
+启动后：✅ 菜单栏出现铃铛 → ✅ 桌面出现宠物 → ✅ 终端打印 `小铃铛启动完成!`
+
+### 验证通知
+
+```bash
+curl -X POST http://127.0.0.1:6789/event \
+  -H "Content-Type: application/json" \
+  -d '{"agent":"claude-code","event":"stop","data":{"message":"重构完成，等你 review"}}'
+```
+
+### 接入 Claude Code
+
+```bash
+uv run python install.py
+```
+
+脚本会自动：备份 `~/.claude/settings.json` → 注入 Stop / Notification / PermissionRequest hooks → 引导配置 Bark。
+
+---
+
+## 配置推送通道
+
+### Bark（推送到 iPhone + 远程批准）
+
+```bash
+cp config.example.yaml config.yaml
+```
+
+1. App Store 下载 [Bark](https://apps.apple.com/app/bark/id1403753865)
+2. 打开 Bark，复制首页的 Device Key
+3. 编辑 `config.yaml`：
+
+```yaml
+bark:
+  server: "https://api.day.app"
+  device_key: "你的DeviceKey"
+```
+
+### Webhook（飞书 / 钉钉 / Slack / Discord）
+
+<details>
+<summary>点击展开各平台配置示例</summary>
+
+**飞书：**
+```yaml
+webhook:
+  url: "https://open.feishu.cn/open-apis/bot/v2/hook/你的token"
+  body_template: '{"msg_type":"text","content":{"text":"{{title}}: {{body}}"}}'
+```
+
+**钉钉：**
+```yaml
+webhook:
+  url: "https://oapi.dingtalk.com/robot/send?access_token=你的token"
+  body_template: '{"msgtype":"text","text":{"content":"{{title}}: {{body}}"}}'
+```
+
+**Slack：**
+```yaml
+webhook:
+  url: "https://hooks.slack.com/services/T.../B.../xxx"
+  body_template: '{"text":"*{{title}}*\n{{body}}"}'
+```
+
+**Discord：**
+```yaml
+webhook:
+  url: "https://discord.com/api/webhooks/你的ID/你的token"
+  body_template: '{"content":"**{{title}}**\n{{body}}"}'
+```
+
+</details>
+
+---
+
+## 接入其他 Agent
+
+小铃铛通过 HTTP 接口接收事件。任何能发 curl 的工具都能接入：
 
 ```bash
 curl -X POST http://127.0.0.1:6789/event \
@@ -238,68 +205,75 @@ curl -X POST http://127.0.0.1:6789/event \
   -d '{"agent":"你的agent名","event":"stop","data":{"message":"描述信息"}}'
 ```
 
-**event 类型说明：**
-
 | event | 含义 | 推送标题 |
 |-------|------|----------|
-| `stop` | Agent 完成一轮，等待用户输入 | "Agent 等你继续" |
+| `stop` | Agent 完成一轮 | "Agent 等你继续" |
 | `notification` | Agent 主动通知 | "Agent 通知" |
-| `permission_request` | Agent 需要用户批准操作 | "需要你批准操作!" |
-
-**示例：在 shell 脚本中接入**
-
-```bash
-#!/bin/bash
-# 在你的 CI/CD 或自动化脚本末尾加一行
-curl -s http://127.0.0.1:6789/event \
-  -H "Content-Type: application/json" \
-  -d "{\"agent\":\"my-script\",\"event\":\"stop\",\"data\":{\"message\":\"$1\"}}" \
-  >/dev/null 2>&1 || true
-```
+| `permission_request` | 需要用户批准 | "需要你批准操作!" |
 
 ---
 
-## ⚙️ 完整配置参考
+## Agent 支持矩阵
 
-```bash
-cp config.example.yaml config.yaml
-```
+| Agent | 接入方式 | 通知 | 远程批准 | 状态 |
+|-------|---------|:---:|:---:|------|
+| **Claude Code** | 原生 Hook (Stop + Notification + PermissionRequest) | ✅ | ✅ | 已支持 |
+| **任意工具** | HTTP API (`/event` + `/permission`) | ✅ | ✅ | 已支持 |
+| Codex CLI | Terminal 模式匹配 | 🚧 | 🚧 | 开发中 |
+| Cursor | Accessibility API | 📋 | 📋 | 规划中 |
+
+---
+
+## 技术栈
+
+| 组件 | 技术 |
+|------|------|
+| 菜单栏 | rumps (PyObjC) |
+| 桌面宠物 | PyObjC 原生 NSWindow |
+| 本地服务 | Flask (线程模式) |
+| 推送 | Bark API / Webhook / osascript |
+| 精灵图 | Pillow 程序化生成 |
+| 包管理 | uv |
 
 <details>
-<summary>📖 config.example.yaml 完整内容（点击展开）</summary>
+<summary>完整配置参考 (config.example.yaml)</summary>
 
 ```yaml
-# --- macOS 系统通知 (默认开启，零配置) ---
 macos_notification:
   enabled: true
 
-# --- Bark (iOS 推送) ---
 bark:
   server: "https://api.day.app"
-  device_key: ""  # 填入你的 Bark Device Key
+  device_key: ""
 
-# --- 通用 Webhook ---
 webhook:
   url: ""
   method: "POST"
   headers:
     Content-Type: "application/json"
-  body_template: ""  # 留空使用默认 JSON
+  body_template: ""
 
-# --- 推送行为 ---
+rules:
+  auto_allow:
+    - "Read"
+    - "Bash:ls *"
+    - "Bash:git status"
+    - "Bash:git diff*"
+  auto_deny:
+    - "Bash:rm -rf /*"
+    - "Bash:sudo *"
+
 notification:
-  debounce_seconds: 3           # 防抖间隔
-  notify_on_stop: true          # Agent 完成时推送
-  notify_on_notification: true  # Agent 通知时推送
+  debounce_seconds: 3
+  notify_on_stop: true
+  notify_on_notification: true
 
-# --- 桌面宠物 ---
 pet:
   enabled: true
   position_x: 100
   position_y: 100
   size: 80
 
-# --- 本地服务 ---
 server:
   host: "127.0.0.1"
   port: 6789
@@ -309,50 +283,29 @@ server:
 
 ---
 
-## 🗺 支持矩阵 & Roadmap
+## Roadmap
 
-### Agent 支持
-
-| Agent | 接入方式 | 状态 |
-|-------|---------|------|
-| **Claude Code** | 原生 Hook | ✅ 已支持 |
-| Codex CLI | Terminal 模式匹配 | 🚧 开发中 |
-| Cursor | Accessibility API | 📋 规划中 |
-| 任意工具 | HTTP API | ✅ 已支持 |
-
-### Roadmap
-
+- [x] 手机远程批准/拒绝 (Bark + 操作页面)
+- [x] 规则引擎 (auto_allow / auto_deny)
+- [x] 多通道推送 (macOS + Bark + Webhook)
+- [x] 决策审计历史
 - [ ] Codex CLI / Cursor 自动检测
 - [ ] Telegram Bot 通道
 - [ ] 通知历史 Web Dashboard
-- [ ] 手机端快捷回复（Bark URL Scheme）
 - [ ] py2app 打包为 .app 独立应用
 - [ ] Linux 支持 (libnotify + gotify)
 
 ---
 
-## 🛠 技术栈
-
-| 组件 | 技术 |
-|------|------|
-| 菜单栏 | rumps (PyObjC) |
-| 桌面宠物 | PyObjC 原生 NSWindow |
-| 本地服务 | Flask |
-| 推送 | Bark API / Webhook / osascript |
-| 精灵图 | Pillow 程序化生成 |
-| 包管理 | uv |
-
----
-
-## 🤝 Contributing
+## Contributing
 
 欢迎 PR！特别欢迎：
 
-- 🔌 新 Agent 接入适配器（Codex / Cursor / Copilot）
+- 🔌 新 Agent 接入适配器（Codex / Cursor / Copilot / Gemini）
 - 📡 新推送通道（Telegram / Gotify / Pushover）
 - 🖥 跨平台支持（Linux / Windows）
 - 🎨 新宠物形象 / 动画
 
-## 📄 License
+## License
 
 [MIT](./LICENSE) © [Jackychen-12](https://github.com/Jackychen-12)
