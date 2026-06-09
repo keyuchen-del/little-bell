@@ -8,8 +8,8 @@
 
 [![Python](https://img.shields.io/badge/Python-3.12+-3776AB?logo=python&logoColor=white)](https://python.org)
 [![macOS](https://img.shields.io/badge/macOS-Sonoma+-000000?logo=apple&logoColor=white)](https://apple.com/macos)
-[![License](https://img.shields.io/github/license/keyuchen-del/little-bell)](LICENSE)
-[![Last Commit](https://img.shields.io/github/last-commit/keyuchen-del/little-bell?logo=git&logoColor=white)](https://github.com/keyuchen-del/little-bell/commits)
+[![License](https://img.shields.io/github/license/Jackychen-12/little-bell)](LICENSE)
+[![Last Commit](https://img.shields.io/github/last-commit/Jackychen-12/little-bell?logo=git&logoColor=white)](https://github.com/Jackychen-12/little-bell/commits)
 
 </div>
 
@@ -53,7 +53,7 @@ Claude Code、Cursor、Codex……所有 AI Agent 都有同一个问题：**需�
 ### 安装 & 启动
 
 ```bash
-git clone https://github.com/keyuchen-del/little-bell.git
+git clone https://github.com/Jackychen-12/little-bell.git
 cd little-bell
 uv sync
 uv run python -m little_bell
@@ -308,4 +308,4 @@ server:
 
 ## 📄 License
 
-[MIT](./LICENSE) © [keyuchen-del](https://github.com/keyuchen-del)
+[MIT](./LICENSE) © [Jackychen-12](https://github.com/Jackychen-12)
