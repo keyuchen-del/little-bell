@@ -2,9 +2,9 @@
 
 # 🔔 小铃铛 Little Bell
 
-**AI Agent 停下来等你的时候，你的手机会响。**
+**AI Agent 停下来等你的时候，你的手机会响 —— 还能直接批准或拒绝。**
 
-*Never miss when your AI coding agent needs you.*
+*Notify + Remote Approve/Deny when your AI coding agent needs you.*
 
 [![Python](https://img.shields.io/badge/Python-3.12+-3776AB?logo=python&logoColor=white)](https://python.org)
 [![macOS](https://img.shields.io/badge/macOS-Sonoma+-000000?logo=apple&logoColor=white)](https://apple.com/macos)
@@ -26,7 +26,7 @@
 
 Claude Code、Cursor、Codex……所有 AI Agent 都有同一个问题：**需要人工介入时，没有任何方式主动通知你。**
 
-小铃铛解决这个问题 —— **Agent 一停，你手机就响。**
+小铃铛解决这个问题 —— **Agent 一停，你手机就响；需要权限时，手机上直接批准或拒绝，不用跑回电脑。**
 
 ---
 
@@ -34,8 +34,10 @@ Claude Code、Cursor、Codex……所有 AI Agent 都有同一个问题：**需�
 
 | 功能 | 说明 |
 |------|------|
+| **📲 手机远程批准/拒绝** | **Agent 请求权限时，Bark 推送操作链接，手机上一键批准或拒绝，不用回到电脑** |
+| 🛡️ 规则引擎 | 配置 auto_allow / auto_deny 规则，Read / git status 等安全操作自动放行，rm -rf 永远拒绝 |
 | 📱 多通道推送 | macOS 通知 (零配置) + Bark (iOS) + Webhook (飞书/钉钉/Slack/Discord) |
-| 🎣 Claude Code Hook | 原生 Hook 事件接入，Stop / Notification 自动触发 |
+| 🎣 Claude Code Hook | 原生 Hook 事件接入，Stop / Notification / PermissionRequest 自动触发 |
 | 🔔 菜单栏常驻 | 状态栏铃铛图标，有事件时变红 + 计数 |
 | 🐾 桌面宠物 | 星星人风格浮窗宠物，收到通知跳起来 + 气泡消息 |
 | ⏱ 智能防抖 | 同一会话 3 秒内不重复推送，不会轰炸你 |
@@ -178,6 +180,51 @@ uv run python install.py
 3. 引导你配置 Bark（可跳过）
 
 **验证**：启动小铃铛，在 Claude Code 中执行任意任务，当它完成一轮对话或请求权限时，你会收到通知。
+
+---
+
+## 📲 手机远程批准/拒绝
+
+这是小铃铛的核心功能 —— 当 Claude Code 请求权限（如执行命令、编辑文件），你不需要跑回电脑，**直接在手机上操作**。
+
+### 工作流程
+
+```
+Claude Code 请求权限（如 Bash: npm install）
+  → 小铃铛 /permission 端点接收请求，阻塞等待
+  → Bark 推送通知到你的 iPhone，附带操作链接
+  → 你点击通知 → 打开手机端操作页面
+  → 看到命令详情 + 「批准」「拒绝」按钮
+  → 点击批准 → Claude Code 继续执行
+```
+
+### 操作页面功能
+
+手机端的操作页面会显示：
+
+- **工具类型**（Bash / Edit / Write / Read）
+- **富上下文** — Bash 显示完整命令，Edit 显示文件路径和 diff 预览
+- **批准/拒绝按钮** — 一键操作
+- **快捷回复** — 可以输入文字发回给 Agent
+
+### 规则引擎：减少手动干预
+
+不想每次 `git status` 都掏手机？配置规则自动放行：
+
+```yaml
+# config.yaml
+rules:
+  auto_allow:
+    - "Read"              # 所有读文件操作自动批准
+    - "Bash:ls *"         # ls 命令自动批准
+    - "Bash:git status"   # git status 自动批准
+    - "Bash:git diff*"    # git diff 相关自动批准
+  auto_deny:
+    - "Bash:rm -rf /*"    # 根目录删除永远拒绝
+    - "Bash:sudo *"       # sudo 永远拒绝
+```
+
+匹配规则的操作会被自动处理，不匹配的才推送到手机。
 
 ---
 
